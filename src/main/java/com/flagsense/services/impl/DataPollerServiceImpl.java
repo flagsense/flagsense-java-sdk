@@ -142,6 +142,10 @@ public class DataPollerServiceImpl implements DataPollerService, AutoCloseable {
                 if (!newData.getFlags().isEmpty())
                     this.data.setFlags(newData.getFlags());
                 this.data.setLastUpdatedOn(newData.getLastUpdatedOn());
+
+                synchronized (this.data) {
+                    this.data.notifyAll();
+                }
             }
         }
     }

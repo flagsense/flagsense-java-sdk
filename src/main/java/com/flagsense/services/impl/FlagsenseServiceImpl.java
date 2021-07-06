@@ -39,6 +39,19 @@ public class FlagsenseServiceImpl implements FlagsenseService {
     }
 
     @Override
+    public void waitForInitializationComplete() {
+        try {
+            synchronized (this.data) {
+                while (!this.initializationComplete())
+                    this.data.wait();
+            }
+        }
+        catch (InterruptedException e) {
+            System.out.println(e.toString());
+        }
+    }
+
+    @Override
     public FSVariation<Boolean> booleanVariation(FSFlag<Boolean> fsFlag, FSUser fsUser) {
         try {
             return (FSVariation<Boolean>) this.evaluate(fsFlag, fsUser, VariantType.BOOL);
