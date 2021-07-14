@@ -269,7 +269,7 @@ public class UserVariantServiceImpl implements UserVariantService {
                 return version.isGreaterThanOrEqualTo(Version.parse(values.get(0)));
 
             case IOF:
-                return values.contains(attributeValue);
+                return values.contains(version.toString());
 
             default:
                 return false;
