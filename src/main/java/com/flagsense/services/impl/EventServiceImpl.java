@@ -24,8 +24,8 @@ public class EventServiceImpl implements EventService, AutoCloseable {
     private final SdkConfig sdkConfig;
     private final VariantsRequest request;
     private final ConcurrentMap<Long, String> requests;
-    private final ConcurrentMap<String, ConcurrentMap<String, Integer>> data;
-    private final ConcurrentMap<String, Integer> errors;
+    private final ConcurrentMap<String, ConcurrentMap<String, Long>> data;
+    private final ConcurrentMap<String, Long> errors;
     private final long MILLIS_IN_EVENT_FLUSH_INTERVAL;
     private long timeSlot;
 
@@ -90,14 +90,14 @@ public class EventServiceImpl implements EventService, AutoCloseable {
             if (currentTimeSlot != this.timeSlot)
                 checkAndRefreshData(currentTimeSlot);
 
-            ConcurrentMap<String, Integer> variantsMap = this.data.get(flagId);
+            ConcurrentMap<String, Long> variantsMap = this.data.get(flagId);
             if (variantsMap == null) {
                 variantsMap = this.data.putIfAbsent(flagId, new ConcurrentHashMap<>());
                 if (variantsMap == null)
                     variantsMap = this.data.get(flagId);
             }
 
-            variantsMap.merge(variantKey, 1, Integer::sum);
+            variantsMap.merge(variantKey, 1L, Long::sum);
         }
         catch (Exception ignored) {
         }
@@ -113,7 +113,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
             if (currentTimeSlot != this.timeSlot)
                 checkAndRefreshData(currentTimeSlot);
 
-            this.errors.merge(flagId, 1, Integer::sum);
+            this.errors.merge(flagId, 1L, Long::sum);
         }
         catch (Exception ignored) {
         }
@@ -180,7 +180,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         }
         catch (Exception exception) {
-            System.out.println("flagsense: unable to register shutdown hook");
+//            System.out.println("flagsense: unable to register shutdown hook");
         }
     }
 
@@ -216,7 +216,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
 //                System.out.println("sent");
             }
             catch (Exception exception) {
-                System.out.println(exception.getMessage());
+//                System.out.println(exception.getMessage());
             }
             finally {
                 if (response != null) {

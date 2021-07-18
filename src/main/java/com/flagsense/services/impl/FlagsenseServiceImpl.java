@@ -47,7 +47,7 @@ public class FlagsenseServiceImpl implements FlagsenseService {
             }
         }
         catch (InterruptedException e) {
-            System.out.println(e.toString());
+//             System.out.println(e.toString());
         }
     }
 
@@ -134,7 +134,7 @@ public class FlagsenseServiceImpl implements FlagsenseService {
             this.eventService.addEvaluationCount(userVariantDTO.getFlagId(), userVariantDTO.getKey());
         }
         catch (Exception e) {
-            System.out.println(e.toString());
+//            System.out.println(e.toString());
             userVariantDTO.setKey(userVariantDTO.getDefaultKey());
             userVariantDTO.setValue(userVariantDTO.getDefaultValue());
             this.eventService.addEvaluationCount(userVariantDTO.getFlagId(), userVariantDTO.getDefaultKey() != null ? userVariantDTO.getDefaultKey() : "default");

@@ -93,7 +93,7 @@ public class DataPollerServiceImpl implements DataPollerService, AutoCloseable {
                 parseResponseAndUpdateData(response);
             }
             catch (Exception exception) {
-                System.out.println(exception.getMessage());
+//                System.out.println(exception.getMessage());
             }
             finally {
                 if (response != null) {
