@@ -159,9 +159,10 @@ public class UserVariantServiceImpl implements UserVariantService {
     }
 
     private Object getAttributeValue(String userId, Map<String, Object> attributes, String key) {
-        if (StringUtils.equals(key, "id"))
-            return userId;
-        return attributes == null ? null : attributes.get(key);
+        boolean attributesContainsKey = attributes != null && attributes.containsKey(key);
+        if (attributesContainsKey)
+            return attributes.get(key);
+        return StringUtils.equals(key, "id") ? userId : null;
     }
 
     private boolean matchesIntRule(Rule<Integer> rule, Integer attributeValue) {
