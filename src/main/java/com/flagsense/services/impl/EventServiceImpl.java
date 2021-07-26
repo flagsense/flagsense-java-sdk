@@ -25,6 +25,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
     private final VariantsRequest request;
     private final ConcurrentMap<Long, String> requests;
     private final ConcurrentMap<String, ConcurrentMap<String, Long>> data;
+    private final ConcurrentMap<String, ConcurrentMap<String, Long>> codeBugs;
     private final ConcurrentMap<String, Long> errors;
     private final long MILLIS_IN_EVENT_FLUSH_INTERVAL;
     private long timeSlot;
@@ -39,11 +40,12 @@ public class EventServiceImpl implements EventService, AutoCloseable {
 
         this.sdkConfig = sdkConfig;
         this.data = new ConcurrentHashMap<>();
+        this.codeBugs = new ConcurrentHashMap<>();
         this.errors = new ConcurrentHashMap<>();
         this.requests = new ConcurrentHashMap<>();
         this.MILLIS_IN_EVENT_FLUSH_INTERVAL = EVENT_FLUSH_INTERVAL * 60 * 1000;
         this.timeSlot = getTimeSlot(System.currentTimeMillis());
-        this.request = new VariantsRequest(UUID.randomUUID().toString(), sdkConfig.getEnvironment(), this.data, this.errors, this.timeSlot);
+        this.request = new VariantsRequest(UUID.randomUUID().toString(), sdkConfig.getEnvironment(), this.data, this.codeBugs, this.errors, this.timeSlot);
 
         this.eventSender = new EventSender(this.requests, this.sdkConfig);
         final ThreadFactory threadFactory = Executors.defaultThreadFactory();
@@ -119,6 +121,29 @@ public class EventServiceImpl implements EventService, AutoCloseable {
         }
     }
 
+    @Override
+    public void addCodeBugsCount(String flagId, String variantKey) {
+        try {
+            if (!CAPTURE_EVENTS_FLAG)
+                return;
+
+            long currentTimeSlot = getTimeSlot(System.currentTimeMillis());
+            if (currentTimeSlot != this.timeSlot)
+                checkAndRefreshData(currentTimeSlot);
+
+            ConcurrentMap<String, Long> variantsMap = this.codeBugs.get(flagId);
+            if (variantsMap == null) {
+                variantsMap = this.codeBugs.putIfAbsent(flagId, new ConcurrentHashMap<>());
+                if (variantsMap == null)
+                    variantsMap = this.codeBugs.get(flagId);
+            }
+
+            variantsMap.merge(variantKey, 1L, Long::sum);
+        }
+        catch (Exception ignored) {
+        }
+    }
+
     private synchronized void checkAndRefreshData(long currentTimeSlot) {
         if (currentTimeSlot == this.timeSlot)
             return;
@@ -128,18 +153,20 @@ public class EventServiceImpl implements EventService, AutoCloseable {
     private synchronized void refreshData(long currentTimeSlot) {
         this.request.setTime(this.timeSlot);
         this.request.setData(this.data);
+        this.request.setCodeBugs(this.codeBugs);
         this.request.setErrors(this.errors);
 
         try {
-            if (!this.request.getData().isEmpty() || !this.request.getErrors().isEmpty())
+            if (!this.request.getData().isEmpty() || !this.request.getCodeBugs().isEmpty() || !this.request.getErrors().isEmpty())
                 this.requests.put(this.timeSlot, objectMapper.writeValueAsString(this.request));
         }
         catch(JsonProcessingException ignored) {
         }
 
-        this.timeSlot = currentTimeSlot;
         this.data.clear();
+        this.codeBugs.clear();
         this.errors.clear();
+        this.timeSlot = currentTimeSlot;
     }
 
     // This method has been optimized for EVENT_FLUSH_INTERVAL = 5L

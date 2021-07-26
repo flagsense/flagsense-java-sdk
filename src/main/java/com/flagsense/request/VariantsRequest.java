@@ -9,14 +9,17 @@ public class VariantsRequest {
     private String sdkType;
     private Environment environment;
     private ConcurrentMap<String, ConcurrentMap<String, Long>> data;
+    private ConcurrentMap<String, ConcurrentMap<String, Long>> codeBugs;
     private ConcurrentMap<String, Long> errors;
     private Long time;
 
-    public VariantsRequest(String machineId, Environment environment, ConcurrentMap<String, ConcurrentMap<String, Long>> data, ConcurrentMap<String, Long> errors, Long time) {
+    public VariantsRequest(String machineId, Environment environment, ConcurrentMap<String, ConcurrentMap<String, Long>> data,
+                           ConcurrentMap<String, ConcurrentMap<String, Long>> codeBugs, ConcurrentMap<String, Long> errors, Long time) {
         this.machineId = machineId;
         this.sdkType = "java";
         this.environment = environment;
         this.data = data;
+        this.codeBugs = codeBugs;
         this.errors = errors;
         this.time = time;
     }
@@ -55,5 +58,13 @@ public class VariantsRequest {
 
     public void setTime(Long time) {
         this.time = time;
+    }
+
+    public ConcurrentMap<String, ConcurrentMap<String, Long>> getCodeBugs() {
+        return codeBugs;
+    }
+
+    public void setCodeBugs(ConcurrentMap<String, ConcurrentMap<String, Long>> codeBugs) {
+        this.codeBugs = codeBugs;
     }
 }

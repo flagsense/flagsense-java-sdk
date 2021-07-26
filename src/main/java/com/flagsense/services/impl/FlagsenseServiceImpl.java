@@ -10,6 +10,7 @@ import com.flagsense.services.UserVariantService;
 import com.flagsense.util.FlagsenseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 
@@ -110,6 +111,12 @@ public class FlagsenseServiceImpl implements FlagsenseService {
         catch (Exception e) {
             return new FSVariation<>(fsFlag.getDefaultKey(), fsFlag.getDefaultValue());
         }
+    }
+
+    @Override
+    public void recordCodeError(String flagId, String variationKey) {
+        if (StringUtils.isNotBlank(flagId) && StringUtils.isNotBlank(variationKey))
+            this.eventService.addCodeBugsCount(flagId, variationKey);
     }
 
     private FSVariation<?> evaluate(FSFlag<?> fsFlag, FSUser fsUser, VariantType expectedVariantType) {
