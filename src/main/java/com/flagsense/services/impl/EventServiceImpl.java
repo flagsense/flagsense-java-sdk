@@ -209,6 +209,9 @@ public class EventServiceImpl implements EventService, AutoCloseable {
         catch(JsonProcessingException ignored) {
         }
 
+        this.experimentEventsRequest.setTime(this.timeSlot);
+        this.experimentEventsRequest.setExperimentEvents(this.experimentEvents);
+
         try {
             if (!this.experimentEventsRequest.getExperimentEvents().isEmpty())
                 this.experimentEventsRequests.put(this.timeSlot, objectMapper.writeValueAsString(this.experimentEventsRequest));
