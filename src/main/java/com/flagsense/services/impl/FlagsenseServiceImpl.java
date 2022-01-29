@@ -114,13 +114,13 @@ public class FlagsenseServiceImpl implements FlagsenseService {
     }
 
     @Override
-    public void recordCodeError(FSUser fsUser, String flagId) {
-        if (fsUser == null || StringUtils.isBlank(flagId))
+    public void recordCodeError(FSFlag<?> fsFlag, FSUser fsUser) {
+        if (fsFlag == null || fsUser == null || StringUtils.isBlank(fsFlag.getFlagId()))
             return;
-        String variantKey = this.getVariantKey(fsUser, flagId);
+        String variantKey = this.getVariantKey(fsUser, fsFlag.getFlagId());
         if (StringUtils.isBlank(variantKey))
             return;
-        this.eventService.addCodeBugsCount(flagId, variantKey);
+        this.eventService.addCodeBugsCount(fsFlag.getFlagId(), variantKey);
     }
 
     @Override
