@@ -136,11 +136,13 @@ public class DataPollerServiceImpl implements DataPollerService, AutoCloseable {
                 return;
 
             Data newData = objectMapper.readValue(responseString, Data.class);
-            if (newData != null && newData.getLastUpdatedOn() != null && newData.getSegments() != null && newData.getFlags() != null) {
+            if (newData != null && newData.getLastUpdatedOn() != null && newData.getSegments() != null && newData.getFlags() != null && newData.getExperiments() != null) {
                 if (!newData.getSegments().isEmpty())
                     this.data.setSegments(newData.getSegments());
                 if (!newData.getFlags().isEmpty())
                     this.data.setFlags(newData.getFlags());
+                if (!newData.getExperiments().isEmpty())
+                    this.data.setExperiments(newData.getExperiments());
                 this.data.setLastUpdatedOn(newData.getLastUpdatedOn());
 
                 synchronized (this.data) {

@@ -2,6 +2,7 @@ package com.flagsense.services.impl;
 
 import com.flagsense.enums.Operator;
 import com.flagsense.enums.Status;
+import com.flagsense.enums.VariantType;
 import com.flagsense.model.*;
 import com.flagsense.services.UserVariantService;
 import com.flagsense.util.FlagsenseException;
@@ -33,7 +34,7 @@ public class UserVariantServiceImpl implements UserVariantService {
         if (flagDTO == null)
             throw new FlagsenseException("Flag not found");
 
-        if (flagDTO.getType() != userVariantDTO.getExpectedVariantType())
+        if (userVariantDTO.getExpectedVariantType() != VariantType.ANY && flagDTO.getType() != userVariantDTO.getExpectedVariantType())
             throw new FlagsenseException("Bad flag type specified");
 
         String userVariantKey = getUserVariantKey(userVariantDTO, flagDTO);

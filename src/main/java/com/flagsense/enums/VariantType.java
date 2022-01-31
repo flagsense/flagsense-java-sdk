@@ -5,5 +5,6 @@ public enum VariantType {
     BOOL,
     DOUBLE,
     STRING,
-    JSON
+    JSON,
+    ANY
 }

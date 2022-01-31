@@ -9,7 +9,7 @@ public class Constants {
 
     public static final double MAX_HASH_VALUE = Math.pow(2, 32);
     public static final int TOTAL_THREE_DECIMAL_TRAFFIC = 100000;
-    public static final long DATA_REFRESH_INTERVAL = 5L;
+    public static final long DATA_REFRESH_INTERVAL = 1L;
     public static final boolean CAPTURE_EVENTS_FLAG = true;
     public static final long EVENT_FLUSH_INTITAL_DELAY = 2L;
     public static final long EVENT_FLUSH_INTERVAL = 5L;

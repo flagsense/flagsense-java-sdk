@@ -1,6 +1,8 @@
 package com.flagsense.services.impl;
 
+import com.flagsense.model.Metrics;
 import com.flagsense.model.SdkConfig;
+import com.flagsense.request.ExperimentEventsRequest;
 import com.flagsense.request.VariantsRequest;
 import com.flagsense.services.EventService;
 import com.flagsense.util.FlagsenseHttpClient;
@@ -23,10 +25,13 @@ public class EventServiceImpl implements EventService, AutoCloseable {
 
     private final SdkConfig sdkConfig;
     private final VariantsRequest request;
+    private final ExperimentEventsRequest experimentEventsRequest;
     private final ConcurrentMap<Long, String> requests;
     private final ConcurrentMap<String, ConcurrentMap<String, Long>> data;
     private final ConcurrentMap<String, ConcurrentMap<String, Long>> codeBugs;
     private final ConcurrentMap<String, Long> errors;
+    private final ConcurrentMap<Long, String> experimentEventsRequests;
+    private final ConcurrentMap<String, ConcurrentMap<String, ConcurrentMap<String, Metrics>>> experimentEvents;
     private final long MILLIS_IN_EVENT_FLUSH_INTERVAL;
     private long timeSlot;
 
@@ -36,6 +41,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
     private final ScheduledExecutorService scheduledExecutorService;
 
     public EventServiceImpl(SdkConfig sdkConfig) {
+        String machineId = UUID.randomUUID().toString();
         this.objectMapper = new ObjectMapper();
 
         this.sdkConfig = sdkConfig;
@@ -43,11 +49,14 @@ public class EventServiceImpl implements EventService, AutoCloseable {
         this.codeBugs = new ConcurrentHashMap<>();
         this.errors = new ConcurrentHashMap<>();
         this.requests = new ConcurrentHashMap<>();
+        this.experimentEvents = new ConcurrentHashMap<>();
+        this.experimentEventsRequests = new ConcurrentHashMap<>();
         this.MILLIS_IN_EVENT_FLUSH_INTERVAL = EVENT_FLUSH_INTERVAL * 60 * 1000;
         this.timeSlot = getTimeSlot(System.currentTimeMillis());
-        this.request = new VariantsRequest(UUID.randomUUID().toString(), sdkConfig.getEnvironment(), this.data, this.codeBugs, this.errors, this.timeSlot);
+        this.request = new VariantsRequest(machineId, sdkConfig.getEnvironment(), this.data, this.codeBugs, this.errors, this.timeSlot);
+        this.experimentEventsRequest = new ExperimentEventsRequest(machineId, sdkConfig.getEnvironment(), this.experimentEvents, this.timeSlot);
 
-        this.eventSender = new EventSender(this.requests, this.sdkConfig);
+        this.eventSender = new EventSender(this.sdkConfig, this.requests, this.experimentEventsRequests);
         final ThreadFactory threadFactory = Executors.defaultThreadFactory();
         scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = threadFactory.newThread(runnable);
@@ -144,6 +153,43 @@ public class EventServiceImpl implements EventService, AutoCloseable {
         }
     }
 
+    @Override
+    public void recordExperimentEvent(String experimentId, String eventName, String variantKey, double value) {
+        try {
+            if (!CAPTURE_EVENTS_FLAG)
+                return;
+
+            long currentTimeSlot = getTimeSlot(System.currentTimeMillis());
+            if (currentTimeSlot != this.timeSlot)
+                checkAndRefreshData(currentTimeSlot);
+
+            ConcurrentMap<String, ConcurrentMap<String, Metrics>> eventNamesMap = this.experimentEvents.get(experimentId);
+            if (eventNamesMap == null) {
+                eventNamesMap = this.experimentEvents.putIfAbsent(experimentId, new ConcurrentHashMap<>());
+                if (eventNamesMap == null)
+                    eventNamesMap = this.experimentEvents.get(experimentId);
+            }
+
+            ConcurrentMap<String, Metrics> variantsMap = eventNamesMap.get(eventName);
+            if (variantsMap == null) {
+                variantsMap = eventNamesMap.putIfAbsent(eventName, new ConcurrentHashMap<>());
+                if (variantsMap == null)
+                    variantsMap = eventNamesMap.get(eventName);
+            }
+
+            variantsMap.merge(variantKey, Metrics.of(value), (m1, m2) -> {
+                Metrics metrics = Metrics.EMPTY();
+                metrics.setCount(m1.getCount() + m2.getCount());
+                metrics.setTotal(m1.getTotal().add(m2.getTotal()));
+                metrics.setMinimum(m1.getMinimum().min(m2.getMinimum()));
+                metrics.setMaximum(m1.getMaximum().max(m2.getMaximum()));
+                return metrics;
+            });
+        }
+        catch (Exception ignored) {
+        }
+    }
+
     private synchronized void checkAndRefreshData(long currentTimeSlot) {
         if (currentTimeSlot == this.timeSlot)
             return;
@@ -163,9 +209,20 @@ public class EventServiceImpl implements EventService, AutoCloseable {
         catch(JsonProcessingException ignored) {
         }
 
+        this.experimentEventsRequest.setTime(this.timeSlot);
+        this.experimentEventsRequest.setExperimentEvents(this.experimentEvents);
+
+        try {
+            if (!this.experimentEventsRequest.getExperimentEvents().isEmpty())
+                this.experimentEventsRequests.put(this.timeSlot, objectMapper.writeValueAsString(this.experimentEventsRequest));
+        }
+        catch(JsonProcessingException ignored) {
+        }
+
         this.data.clear();
         this.codeBugs.clear();
         this.errors.clear();
+        this.experimentEvents.clear();
         this.timeSlot = currentTimeSlot;
     }
 
@@ -192,7 +249,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
     }
 
     private long getTimeSlot(long time) {
-        return (time / MILLIS_IN_EVENT_FLUSH_INTERVAL) * MILLIS_IN_EVENT_FLUSH_INTERVAL;
+        return ((time + MILLIS_IN_EVENT_FLUSH_INTERVAL - 1) / MILLIS_IN_EVENT_FLUSH_INTERVAL) * MILLIS_IN_EVENT_FLUSH_INTERVAL;
     }
 
     private void registerShutdownHook() {
@@ -207,19 +264,21 @@ public class EventServiceImpl implements EventService, AutoCloseable {
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         }
         catch (Exception exception) {
-//            System.out.println("flagsense: unable to register shutdown hook");
+            // System.out.println("flagsense: unable to register shutdown hook");
         }
     }
 
     private class EventSender implements Runnable {
 
-        private final ConcurrentMap<Long, String> requests;
         private final SdkConfig sdkConfig;
+        private final ConcurrentMap<Long, String> requests;
+        private final ConcurrentMap<Long, String> experimentEventsRequests;
         private final FlagsenseHttpClient httpClient;
 
-        public EventSender(ConcurrentMap<Long, String> requests, SdkConfig sdkConfig) {
-            this.requests = requests;
+        public EventSender(SdkConfig sdkConfig, ConcurrentMap<Long, String> requests, ConcurrentMap<Long, String> experimentEventsRequests) {
             this.sdkConfig = sdkConfig;
+            this.requests = requests;
+            this.experimentEventsRequests = experimentEventsRequests;
             this.httpClient = FlagsenseHttpClient.builder().build();
         }
 
@@ -229,21 +288,29 @@ public class EventServiceImpl implements EventService, AutoCloseable {
             for (Long time : timeKeys) {
                 String requestBody = this.requests.getOrDefault(time, null);
                 if (requestBody != null)
-                    sendEvents(requestBody);
+                    sendEvents("variantsData", requestBody);
                 this.requests.remove(time);
+            }
+
+            Set<Long> experimentEventsTimeKeys = this.experimentEventsRequests.keySet();
+            for (Long time : experimentEventsTimeKeys) {
+                String requestBody = this.experimentEventsRequests.getOrDefault(time, null);
+                if (requestBody != null)
+                    sendEvents("experimentEvents", requestBody);
+                this.experimentEventsRequests.remove(time);
             }
         }
 
-        private void sendEvents(String requestBody) {
+        private void sendEvents(String api, String requestBody) {
             CloseableHttpResponse response = null;
             try {
-//                System.out.println("sending events at: " + LocalDateTime.now());
-                HttpPost httpPost = createRequest(requestBody);
+                // System.out.println("sending events at to '" + api + "' at " + LocalDateTime.now() + ": " + requestBody);
+                HttpPost httpPost = createRequest(api, requestBody);
                 response = httpClient.execute(httpPost);
-//                System.out.println("sent");
+                // System.out.println("sent");
             }
             catch (Exception exception) {
-//                System.out.println(exception.getMessage());
+                // System.out.println(exception.getMessage());
             }
             finally {
                 if (response != null) {
@@ -256,8 +323,8 @@ public class EventServiceImpl implements EventService, AutoCloseable {
             }
         }
 
-        private HttpPost createRequest(String requestBody) throws UnsupportedEncodingException {
-            HttpPost httpPost = new HttpPost(EVENTS_BASE_URL + "variantsData");
+        private HttpPost createRequest(String api, String requestBody) throws UnsupportedEncodingException {
+            HttpPost httpPost = new HttpPost(EVENTS_BASE_URL + api);
             httpPost.setHeader(HEADER_AUTH_TYPE, "sdk");
             httpPost.setHeader(HEADER_SDK_ID, this.sdkConfig.getSdkId());
             httpPost.setHeader(HEADER_SDK_SECRET, this.sdkConfig.getSdkSecret());

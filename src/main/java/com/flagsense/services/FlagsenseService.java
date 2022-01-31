@@ -16,5 +16,7 @@ public interface FlagsenseService {
     FSVariation<String> stringVariation(FSFlag<String> fsFlag, FSUser fsUser);
     FSVariation<JsonNode> jsonVariation(FSFlag<JsonNode> fsFlag, FSUser fsUser);
     FSVariation<Map<String, Object>> mapVariation(FSFlag<Map<String, Object>> fsFlag, FSUser fsUser);
-    void recordCodeError(String flagId, String variationKey);
+    void recordCodeError(FSFlag<?> fsFlag, FSUser fsUser);
+    void recordEvent(FSUser fsUser, String experimentId, String eventName);
+    void recordEvent(FSUser fsUser, String experimentId, String eventName, double value);
 }

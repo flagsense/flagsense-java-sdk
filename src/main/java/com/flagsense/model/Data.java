@@ -6,6 +6,7 @@ public class Data {
     private long lastUpdatedOn;
     private Map<String, SegmentDTO> segments;
     private Map<String, FlagDTO> flags;
+    private Map<String, ExperimentDTO> experiments;
 
     public Data() {
         this.lastUpdatedOn = 0;
@@ -35,5 +36,13 @@ public class Data {
 
     public void setFlags(Map<String, FlagDTO> flags) {
         this.flags = flags;
+    }
+
+    public Map<String, ExperimentDTO> getExperiments() {
+        return experiments;
+    }
+
+    public void setExperiments(Map<String, ExperimentDTO> experiments) {
+        this.experiments = experiments;
     }
 }
