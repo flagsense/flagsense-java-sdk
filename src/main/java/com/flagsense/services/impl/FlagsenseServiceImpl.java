@@ -124,12 +124,12 @@ public class FlagsenseServiceImpl implements FlagsenseService {
     }
 
     @Override
-    public void recordEvent(FSUser fsUser, String eventName, String flagId) {
-        this.recordEvent(fsUser, eventName, 1, flagId);
+    public void recordEvent(FSUser fsUser, String flagId, String eventName) {
+        this.recordEvent(fsUser, flagId, eventName, 1);
     }
 
     @Override
-    public void recordEvent(FSUser fsUser, String eventName, double value, String flagId) {
+    public void recordEvent(FSUser fsUser, String flagId, String eventName, double value) {
         if (fsUser == null || StringUtils.isBlank(flagId) || StringUtils.isBlank(eventName))
             return;
         ExperimentDTO experimentDTO = this.getExperimentData(flagId);
