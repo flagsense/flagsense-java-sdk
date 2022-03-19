@@ -154,7 +154,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
     }
 
     @Override
-    public void recordExperimentEvent(String experimentId, String eventName, String variantKey, double value) {
+    public void recordExperimentEvent(String flagId, String eventName, String variantKey, double value) {
         try {
             if (!CAPTURE_EVENTS_FLAG)
                 return;
@@ -163,11 +163,11 @@ public class EventServiceImpl implements EventService, AutoCloseable {
             if (currentTimeSlot != this.timeSlot)
                 checkAndRefreshData(currentTimeSlot);
 
-            ConcurrentMap<String, ConcurrentMap<String, Metrics>> eventNamesMap = this.experimentEvents.get(experimentId);
+            ConcurrentMap<String, ConcurrentMap<String, Metrics>> eventNamesMap = this.experimentEvents.get(flagId);
             if (eventNamesMap == null) {
-                eventNamesMap = this.experimentEvents.putIfAbsent(experimentId, new ConcurrentHashMap<>());
+                eventNamesMap = this.experimentEvents.putIfAbsent(flagId, new ConcurrentHashMap<>());
                 if (eventNamesMap == null)
-                    eventNamesMap = this.experimentEvents.get(experimentId);
+                    eventNamesMap = this.experimentEvents.get(flagId);
             }
 
             ConcurrentMap<String, Metrics> variantsMap = eventNamesMap.get(eventName);

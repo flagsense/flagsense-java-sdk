@@ -124,21 +124,21 @@ public class FlagsenseServiceImpl implements FlagsenseService {
     }
 
     @Override
-    public void recordEvent(FSUser fsUser, String experimentId, String eventName) {
-        this.recordEvent(fsUser, experimentId, eventName, 1);
+    public void recordEvent(FSUser fsUser, String eventName, String flagId) {
+        this.recordEvent(fsUser, eventName, 1, flagId);
     }
 
     @Override
-    public void recordEvent(FSUser fsUser, String experimentId, String eventName, double value) {
-        if (fsUser == null || StringUtils.isBlank(experimentId) || StringUtils.isBlank(eventName))
+    public void recordEvent(FSUser fsUser, String eventName, double value, String flagId) {
+        if (fsUser == null || StringUtils.isBlank(flagId) || StringUtils.isBlank(eventName))
             return;
-        ExperimentDTO experimentDTO = this.getExperimentData(experimentId);
+        ExperimentDTO experimentDTO = this.getExperimentData(flagId);
         if (experimentDTO == null || experimentDTO.getEventNames() == null || !experimentDTO.getEventNames().contains(eventName))
             return;
-        String variantKey = this.getVariantKey(fsUser, experimentDTO.getFlagId());
+        String variantKey = this.getVariantKey(fsUser, flagId);
         if (StringUtils.isBlank(variantKey))
             return;
-        this.eventService.recordExperimentEvent(experimentId, eventName, variantKey, value);
+        this.eventService.recordExperimentEvent(flagId, eventName, variantKey, value);
     }
 
     private FSVariation<?> evaluate(FSFlag<?> fsFlag, FSUser fsUser, VariantType expectedVariantType) {
