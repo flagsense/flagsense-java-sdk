@@ -13,6 +13,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -284,7 +285,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
 
         @Override
         public void run() {
-            Set<Long> timeKeys = this.requests.keySet();
+            Set<Long> timeKeys = new HashSet<>(this.requests.keySet());
             for (Long time : timeKeys) {
                 String requestBody = this.requests.getOrDefault(time, null);
                 if (requestBody != null)
@@ -292,7 +293,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
                 this.requests.remove(time);
             }
 
-            Set<Long> experimentEventsTimeKeys = this.experimentEventsRequests.keySet();
+            Set<Long> experimentEventsTimeKeys = new HashSet<>(this.experimentEventsRequests.keySet());
             for (Long time : experimentEventsTimeKeys) {
                 String requestBody = this.experimentEventsRequests.getOrDefault(time, null);
                 if (requestBody != null)
