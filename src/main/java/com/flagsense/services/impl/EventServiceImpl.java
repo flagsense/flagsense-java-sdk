@@ -79,16 +79,10 @@ public class EventServiceImpl implements EventService, AutoCloseable {
 
     @Override
     public synchronized void close() {
-        stop();
-        scheduledExecutorService.shutdownNow();
-        started = false;
-    }
-
-    public synchronized void stop() {
         if (!started || scheduledExecutorService.isShutdown())
             return;
-
         scheduledFuture.cancel(true);
+        scheduledExecutorService.shutdownNow();
         started = false;
     }
 
