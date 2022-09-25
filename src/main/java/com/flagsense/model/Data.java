@@ -1,12 +1,16 @@
 package com.flagsense.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.Map;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Data {
     private long lastUpdatedOn;
     private Map<String, SegmentDTO> segments;
     private Map<String, FlagDTO> flags;
     private Map<String, ExperimentDTO> experiments;
+    private ProjectConfigDTO config;
 
     public Data() {
         this.lastUpdatedOn = 0;
@@ -44,5 +48,13 @@ public class Data {
 
     public void setExperiments(Map<String, ExperimentDTO> experiments) {
         this.experiments = experiments;
+    }
+
+    public ProjectConfigDTO getConfig() {
+        return config;
+    }
+
+    public void setConfig(ProjectConfigDTO config) {
+        this.config = config;
     }
 }

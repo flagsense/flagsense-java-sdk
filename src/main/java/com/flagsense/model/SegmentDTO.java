@@ -1,7 +1,10 @@
 package com.flagsense.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SegmentDTO {
     private String id;
     private List<List<Rule>> rules;

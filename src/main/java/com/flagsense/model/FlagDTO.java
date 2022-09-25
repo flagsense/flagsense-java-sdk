@@ -1,10 +1,12 @@
 package com.flagsense.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.flagsense.enums.VariantType;
 
 import java.util.List;
 import java.util.Map;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FlagDTO {
     private String id;
     private Integer seed;
