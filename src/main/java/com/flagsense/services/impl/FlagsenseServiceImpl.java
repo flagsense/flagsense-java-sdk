@@ -14,6 +14,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 
+import static com.flagsense.util.Constants.MAX_INITIALIZATION_WAIT_TIME;
+
 public class FlagsenseServiceImpl implements FlagsenseService {
 
     private final ObjectMapper objectMapper;
@@ -22,6 +24,7 @@ public class FlagsenseServiceImpl implements FlagsenseService {
     private final UserVariantService userVariantService;
     private final DataPollerService dataPollerService;
     private final EventService eventService;
+    private long maxInitializationWaitTime;
 
     public FlagsenseServiceImpl(String sdkId, String sdkSecret, Environment environment) {
         this.objectMapper = new ObjectMapper();
@@ -32,6 +35,7 @@ public class FlagsenseServiceImpl implements FlagsenseService {
         this.eventService = new EventServiceImpl(this.sdkConfig);
         this.dataPollerService.start();
         this.eventService.start();
+        maxInitializationWaitTime = MAX_INITIALIZATION_WAIT_TIME;
     }
 
     @Override
@@ -43,13 +47,18 @@ public class FlagsenseServiceImpl implements FlagsenseService {
     public void waitForInitializationComplete() {
         try {
             synchronized (this.data) {
-                while (!this.initializationComplete())
-                    this.data.wait();
+                if (!this.initializationComplete())
+                    this.data.wait(this.maxInitializationWaitTime);
             }
         }
         catch (InterruptedException e) {
 //             System.out.println(e.toString());
         }
+    }
+
+    @Override
+    public void setMaxInitializationWaitTime(long timeInMillis) {
+        this.maxInitializationWaitTime = timeInMillis;
     }
 
     @Override

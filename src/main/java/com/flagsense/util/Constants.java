@@ -13,4 +13,5 @@ public class Constants {
     public static final boolean CAPTURE_EVENTS_FLAG = true;
     public static final long EVENT_FLUSH_INTITAL_DELAY = 2L;
     public static final long EVENT_FLUSH_INTERVAL = 5L;
+    public static final long MAX_INITIALIZATION_WAIT_TIME = 60 * 1000L;
 }

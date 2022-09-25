@@ -10,6 +10,7 @@ import java.util.Map;
 public interface FlagsenseService {
     boolean initializationComplete();
     void waitForInitializationComplete();
+    void setMaxInitializationWaitTime(long timeInMillis);
     FSVariation<Boolean> booleanVariation(FSFlag<Boolean> fsFlag, FSUser fsUser);
     FSVariation<Integer> integerVariation(FSFlag<Integer> fsFlag, FSUser fsUser);
     FSVariation<Double> decimalVariation(FSFlag<Double> fsFlag, FSUser fsUser);
