@@ -16,6 +16,7 @@ public class Data {
         this.lastUpdatedOn = 0;
         this.segments = null;
         this.flags = null;
+        this.config = null;
     }
 
     public Long getLastUpdatedOn() {
