@@ -10,6 +10,7 @@ import java.util.Map;
 public interface FlagsenseService {
     boolean initializationComplete();
     void waitForInitializationComplete();
+    void setMaxInitializationWaitTime(long timeInMillis);
     FSVariation<Boolean> booleanVariation(FSFlag<Boolean> fsFlag, FSUser fsUser);
     FSVariation<Integer> integerVariation(FSFlag<Integer> fsFlag, FSUser fsUser);
     FSVariation<Double> decimalVariation(FSFlag<Double> fsFlag, FSUser fsUser);
@@ -17,6 +18,6 @@ public interface FlagsenseService {
     FSVariation<JsonNode> jsonVariation(FSFlag<JsonNode> fsFlag, FSUser fsUser);
     FSVariation<Map<String, Object>> mapVariation(FSFlag<Map<String, Object>> fsFlag, FSUser fsUser);
     void recordCodeError(FSFlag<?> fsFlag, FSUser fsUser);
-    void recordEvent(FSUser fsUser, String experimentId, String eventName);
-    void recordEvent(FSUser fsUser, String experimentId, String eventName, double value);
+    void recordEvent(FSFlag<?> fsFlag, FSUser fsUser, String eventName);
+    void recordEvent(FSFlag<?> fsFlag, FSUser fsUser, String eventName, double value);
 }

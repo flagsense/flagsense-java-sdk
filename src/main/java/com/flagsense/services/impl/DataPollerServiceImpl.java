@@ -56,16 +56,10 @@ public class DataPollerServiceImpl implements DataPollerService, AutoCloseable {
 
     @Override
     public synchronized void close() {
-        stop();
-        scheduledExecutorService.shutdownNow();
-        started = false;
-    }
-
-    public synchronized void stop() {
         if (!started || scheduledExecutorService.isShutdown())
             return;
-
         scheduledFuture.cancel(true);
+        scheduledExecutorService.shutdownNow();
         started = false;
     }
 
@@ -102,6 +96,10 @@ public class DataPollerServiceImpl implements DataPollerService, AutoCloseable {
                     }
                     catch (Exception ignored) {
                     }
+                }
+
+                synchronized (this.data) {
+                    this.data.notifyAll();
                 }
             }
         }
@@ -144,10 +142,6 @@ public class DataPollerServiceImpl implements DataPollerService, AutoCloseable {
                 if (!newData.getExperiments().isEmpty())
                     this.data.setExperiments(newData.getExperiments());
                 this.data.setLastUpdatedOn(newData.getLastUpdatedOn());
-
-                synchronized (this.data) {
-                    this.data.notifyAll();
-                }
             }
         }
     }

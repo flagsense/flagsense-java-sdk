@@ -13,11 +13,18 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.*;
 
-import static com.flagsense.util.Constants.*;
+import static com.flagsense.util.Constants.CAPTURE_EVENTS_FLAG;
+import static com.flagsense.util.Constants.EVENTS_BASE_URL;
+import static com.flagsense.util.Constants.EVENT_FLUSH_INTERVAL;
+import static com.flagsense.util.Constants.EVENT_FLUSH_INTITAL_DELAY;
+import static com.flagsense.util.Constants.HEADER_AUTH_TYPE;
+import static com.flagsense.util.Constants.HEADER_SDK_ID;
+import static com.flagsense.util.Constants.HEADER_SDK_SECRET;
 
 public class EventServiceImpl implements EventService, AutoCloseable {
 
@@ -78,16 +85,10 @@ public class EventServiceImpl implements EventService, AutoCloseable {
 
     @Override
     public synchronized void close() {
-        stop();
-        scheduledExecutorService.shutdownNow();
-        started = false;
-    }
-
-    public synchronized void stop() {
         if (!started || scheduledExecutorService.isShutdown())
             return;
-
         scheduledFuture.cancel(true);
+        scheduledExecutorService.shutdownNow();
         started = false;
     }
 
@@ -154,7 +155,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
     }
 
     @Override
-    public void recordExperimentEvent(String experimentId, String eventName, String variantKey, double value) {
+    public void recordExperimentEvent(String flagId, String eventName, String variantKey, double value) {
         try {
             if (!CAPTURE_EVENTS_FLAG)
                 return;
@@ -163,11 +164,11 @@ public class EventServiceImpl implements EventService, AutoCloseable {
             if (currentTimeSlot != this.timeSlot)
                 checkAndRefreshData(currentTimeSlot);
 
-            ConcurrentMap<String, ConcurrentMap<String, Metrics>> eventNamesMap = this.experimentEvents.get(experimentId);
+            ConcurrentMap<String, ConcurrentMap<String, Metrics>> eventNamesMap = this.experimentEvents.get(flagId);
             if (eventNamesMap == null) {
-                eventNamesMap = this.experimentEvents.putIfAbsent(experimentId, new ConcurrentHashMap<>());
+                eventNamesMap = this.experimentEvents.putIfAbsent(flagId, new ConcurrentHashMap<>());
                 if (eventNamesMap == null)
-                    eventNamesMap = this.experimentEvents.get(experimentId);
+                    eventNamesMap = this.experimentEvents.get(flagId);
             }
 
             ConcurrentMap<String, Metrics> variantsMap = eventNamesMap.get(eventName);
@@ -284,7 +285,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
 
         @Override
         public void run() {
-            Set<Long> timeKeys = this.requests.keySet();
+            Set<Long> timeKeys = new HashSet<>(this.requests.keySet());
             for (Long time : timeKeys) {
                 String requestBody = this.requests.getOrDefault(time, null);
                 if (requestBody != null)
@@ -292,7 +293,7 @@ public class EventServiceImpl implements EventService, AutoCloseable {
                 this.requests.remove(time);
             }
 
-            Set<Long> experimentEventsTimeKeys = this.experimentEventsRequests.keySet();
+            Set<Long> experimentEventsTimeKeys = new HashSet<>(this.experimentEventsRequests.keySet());
             for (Long time : experimentEventsTimeKeys) {
                 String requestBody = this.experimentEventsRequests.getOrDefault(time, null);
                 if (requestBody != null)
