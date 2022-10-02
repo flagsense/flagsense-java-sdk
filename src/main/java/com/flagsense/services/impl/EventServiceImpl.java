@@ -18,7 +18,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.*;
 
-import static com.flagsense.util.Constants.*;
+import static com.flagsense.util.Constants.CAPTURE_EVENTS_FLAG;
+import static com.flagsense.util.Constants.EVENTS_BASE_URL;
+import static com.flagsense.util.Constants.EVENT_FLUSH_INTERVAL;
+import static com.flagsense.util.Constants.EVENT_FLUSH_INTITAL_DELAY;
+import static com.flagsense.util.Constants.HEADER_AUTH_TYPE;
+import static com.flagsense.util.Constants.HEADER_SDK_ID;
+import static com.flagsense.util.Constants.HEADER_SDK_SECRET;
 
 public class EventServiceImpl implements EventService, AutoCloseable {
 

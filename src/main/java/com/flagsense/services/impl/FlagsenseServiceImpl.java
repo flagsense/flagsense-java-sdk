@@ -126,28 +126,28 @@ public class FlagsenseServiceImpl implements FlagsenseService {
     public void recordCodeError(FSFlag<?> fsFlag, FSUser fsUser) {
         if (fsFlag == null || fsUser == null || StringUtils.isBlank(fsFlag.getFlagId()))
             return;
-        String variantKey = this.getVariantKey(fsUser, fsFlag.getFlagId());
+        String variantKey = this.getVariantKey(fsUser, fsFlag.getFlagId(), fsFlag.getDefaultKey());
         if (StringUtils.isBlank(variantKey))
             return;
         this.eventService.addCodeBugsCount(fsFlag.getFlagId(), variantKey);
     }
 
     @Override
-    public void recordEvent(FSUser fsUser, String flagId, String eventName) {
-        this.recordEvent(fsUser, flagId, eventName, 1);
+    public void recordEvent(FSFlag<?> fsFlag, FSUser fsUser, String eventName) {
+        this.recordEvent(fsFlag, fsUser, eventName, 1);
     }
 
     @Override
-    public void recordEvent(FSUser fsUser, String flagId, String eventName, double value) {
-        if (fsUser == null || StringUtils.isBlank(flagId) || StringUtils.isBlank(eventName))
+    public void recordEvent(FSFlag<?> fsFlag, FSUser fsUser, String eventName, double value) {
+        if (fsUser == null || fsFlag == null || StringUtils.isBlank(fsFlag.getFlagId()) || StringUtils.isBlank(eventName))
             return;
-        ExperimentDTO experimentDTO = this.getExperimentData(flagId);
+        ExperimentDTO experimentDTO = this.getExperimentData(fsFlag.getFlagId());
         if (experimentDTO == null || experimentDTO.getEventNames() == null || !experimentDTO.getEventNames().contains(eventName))
             return;
-        String variantKey = this.getVariantKey(fsUser, flagId);
+        String variantKey = this.getVariantKey(fsUser, fsFlag.getFlagId(), fsFlag.getDefaultKey());
         if (StringUtils.isBlank(variantKey))
             return;
-        this.eventService.recordExperimentEvent(flagId, eventName, variantKey, value);
+        this.eventService.recordExperimentEvent(fsFlag.getFlagId(), eventName, variantKey, value);
     }
 
     private FSVariation<?> evaluate(FSFlag<?> fsFlag, FSUser fsUser, VariantType expectedVariantType) {
@@ -175,12 +175,12 @@ public class FlagsenseServiceImpl implements FlagsenseService {
 //            System.out.println(e.toString());
             userVariantDTO.setKey(userVariantDTO.getDefaultKey());
             userVariantDTO.setValue(userVariantDTO.getDefaultValue());
-            this.eventService.addEvaluationCount(userVariantDTO.getFlagId(), userVariantDTO.getDefaultKey() != null ? userVariantDTO.getDefaultKey() : "default");
+            this.eventService.addEvaluationCount(userVariantDTO.getFlagId(), userVariantDTO.getDefaultKey() != null ? userVariantDTO.getDefaultKey() : "FS_Empty");
             this.eventService.addErrorsCount(userVariantDTO.getFlagId());
         }
     }
 
-    private String getVariantKey(FSUser fsUser, String flagId) {
+    private String getVariantKey(FSUser fsUser, String flagId, String defaultVariantKey) {
         try {
             if (this.data.getLastUpdatedOn() == 0)
                 throw new FlagsenseException("Loading data");
@@ -194,7 +194,7 @@ public class FlagsenseServiceImpl implements FlagsenseService {
             return userVariantDTO.getKey();
         }
         catch (Exception e) {
-            return "";
+            return StringUtils.isNotBlank(defaultVariantKey) ? defaultVariantKey : "FS_Empty";
         }
     }
 
